@@ -1,12 +1,24 @@
 Package: adaptiveperm
-Title: What the Package Does (One Line, Title Case)
+Title: Adaptive permutation testing
 Version: 0.0.0.9000
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+       c(person(given = "Lasse",
+          family = "Fischer",
+          role = c("aut")),
+         person(given = "Timothy",
+          family = "Barry",
+          role = c("aut", "cre"),
+          email = "tbarry@hsph.harvard.edu",
+          comment=c(ORCID="0000-0002-4356-627X")),
+         person(given = "Aaditya",
+           family = "Ramdas",
+           role = c("aut")))
+Description: `adaptiveperm` implements methods for adaptive permutation testing based on anytime-valid inference and betting. `adaptiveperm` substantially reduces the number of permutations required of a permutation test while retaining similar power to a classical permutation test.
+License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.1
+LinkingTo: Rcpp, BH
+Imports:
+    BH,
+    Rcpp (>= 1.0.9)
