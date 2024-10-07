@@ -11,7 +11,8 @@ run_permutation_test(
   h = 15L,
   alpha = 0.1,
   test_statistic = "MW",
-  adaptive = TRUE
+  adaptive = TRUE,
+  B = NULL
 )
 }
 \value{
@@ -29,8 +30,12 @@ Y_list <- sapply(X = seq_len(m), FUN = function(i) {
  mus <- x * (if (under_null[i]) 0 else 1)
  rnorm(n = n, mean = mus)
 }, simplify = FALSE)
-res <- run_permutation_test(Y_list, x)
 
-# evaluate results
+# MW statistic
+res <- run_permutation_test(Y_list, x, test_statistic = "MW")
+evaluate_simulation_results(res, under_null)
 
+# sum over treated units statistic
+res <- run_permutation_test(Y_list, x, test_statistic = "sum_over_treated_units")
+evaluate_simulation_results(res, under_null)
 }

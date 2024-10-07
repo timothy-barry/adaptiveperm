@@ -7,14 +7,9 @@ using namespace Rcpp;
 void draw_wor_sample(boost::random::mt19937& generator, boost::random::uniform_real_distribution<double>& distribution, const std::vector<double>& i_doub_array, std::vector<int>& random_samp, int n_trt, double n_doub);
 #endif
 
-#ifndef COMPUTE_SCORE_STAT
-#define COMPUTE_SCORE_STAT
-double compute_score_stat(List precomp, const std::vector<int>& trt_idxs, int n_trt);
-#endif
-
-#ifndef COMPUTE_MEAN_OVER_TREATED_UNITS
-#define COMPUTE_MEAN_OVER_TREATED_UNITS
-double compute_mean_over_treated_units(List precomp, const std::vector<int>& trt_idxs, int n_trt);
+#ifndef COMPUTE_SUM_OVER_TREATED_UNITS
+#define COMPUTE_SUM_OVER_TREATED_UNITS
+double compute_sum_over_treated_units(List precomp, const std::vector<int>& trt_idxs, int n_trt);
 #endif
 
 #ifndef COMPUTE_MW_TEST_STATISTIC

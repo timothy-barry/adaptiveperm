@@ -12,14 +12,18 @@
 #'  mus <- x * (if (under_null[i]) 0 else 1)
 #'  rnorm(n = n, mean = mus)
 #' }, simplify = FALSE)
-#' res <- run_permutation_test(Y_list, x)
 #'
-#' # evaluate results
+#' # MW statistic
+#' res <- run_permutation_test(Y_list, x, test_statistic = "MW")
+#' evaluate_simulation_results(res, under_null)
 #'
-run_permutation_test <- function(Y_list, x, side = "two_tailed", h = 15L, alpha = 0.1, test_statistic = "MW", adaptive = TRUE) {
+#' # sum over treated units statistic
+#' res <- run_permutation_test(Y_list, x, test_statistic = "sum_over_treated_units")
+#' evaluate_simulation_results(res, under_null)
+run_permutation_test <- function(Y_list, x, side = "two_tailed", h = 15L, alpha = 0.1, test_statistic = "MW", adaptive = TRUE, B = NULL) {
   # run checks
-  if (!(test_statistic %in% c("MW", "mean_over_treated"))) {
-    stop("`test_statistic` not recognized.")
+  if (!(test_statistic %in% c("MW", "sum_over_treated_units"))) {
+    stop("`test_statistic` not recognized. Select between `MW` and `sum_over_treated_units`.")
   }
   # verify x is binary
   x <- as.integer(x)
@@ -33,18 +37,18 @@ run_permutation_test <- function(Y_list, x, side = "two_tailed", h = 15L, alpha 
     warning("Your sample size may be too small for permutation testing.")
   }
   side_code <- get_side_code(side)
-  # dispatch method based on test statistic
-  out <- if (test_statistic == "MW") {
-    run_adaptive_permutation_test_mw(Y_list, x, side_code, h, alpha, adaptive)
-  } else if (test_statistic == "mean_over_treated_units") {
-    run_adaptive_permutation_test_mean()
-  }
-
+  # set B (if not already set)
+  if (is.null(B)) B <- round(5 * length(Y_list)/alpha)
+  # prepare to launch function
+  funct_name <- switch(test_statistic,
+                       "MW" = "run_permutation_test_mw",
+                       "sum_over_treated_units" = "run_permutation_test_sum_over_treated_units")
+  out <- do.call(what = funct_name, args = list(Y_list, x, side_code, h, alpha, adaptive, B))
   return(out)
 }
 
 
-run_adaptive_permutation_test_mw <-  function(Y_list, x, side_code, h, alpha, adaptive) {
+run_permutation_test_mw <- function(Y_list, x, side_code, h, alpha, adaptive, B) {
   # iterate over hypotheses, performing precomputation
   precomp_list <- lapply(X = Y_list, FUN = function(y) {
     r <- rank(y)
@@ -59,8 +63,21 @@ run_adaptive_permutation_test_mw <-  function(Y_list, x, side_code, h, alpha, ad
     result <- run_adaptive_permutation_test_cpp(precomp_list, x, side_code, h, alpha, "compute_mw_test_statistic")
     p_values <- result$p_values; rejected <- result$rejected
   } else {
-    B <- round(5 * length(Y_list)/alpha)
     p_values <- run_permutation_test_cpp(precomp_list, x, side_code, B, "compute_mw_test_statistic")
+    rejected <- stats::p.adjust(p_values, method = "BH") < alpha
+  }
+  out <- data.frame(p_value = p_values, rejected = rejected)
+  return(out)
+}
+
+
+run_permutation_test_sum_over_treated_units <- function(Y_list, x, side_code, h, alpha, adaptive, B) {
+  precomp_list <- lapply(Y_list, FUN = function(y) list(y = y))
+  if (adaptive) {
+    result <- run_adaptive_permutation_test_cpp(precomp_list, x, side_code, h, alpha, "compute_sum_over_treated_units")
+    p_values <- result$p_values; rejected <- result$rejected
+  } else {
+    p_values <- run_permutation_test_cpp(precomp_list, x, side_code, B, "compute_sum_over_treated_units")
     rejected <- stats::p.adjust(p_values, method = "BH") < alpha
   }
   out <- data.frame(p_value = p_values, rejected = rejected)

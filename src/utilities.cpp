@@ -42,37 +42,7 @@ std::vector<std::vector<int>> generate_wor_sample_test(int n, int n_trt, int n_s
 /*
  * Test statistics
  */
-double compute_score_stat(List precomp, const std::vector<int>& trt_idxs, int n_trt) {
-  NumericVector a = precomp(0);
-  NumericVector w = precomp(1);
-  List D_list = precomp(2);
-
-  double lower_right = 0, lower_left = 0, top = 0, inner_sum;
-  int D_nrow = D_list.length();
-  NumericVector x;
-
-  // iterate over the rows of D
-  for (int i = 0; i < D_nrow; i ++) {
-    inner_sum = 0;
-    x = D_list(i);
-    for (int j = 0; j < n_trt; j ++) {
-      inner_sum += x[trt_idxs[j]];
-    }
-    lower_right += inner_sum * inner_sum;
-  }
-
-  // second, compute the lower-left hand of the denominator; also, compute the top
-  for (int j = 0; j < n_trt; j ++) {
-    top += a[trt_idxs[j]];
-    lower_left += w[trt_idxs[j]];
-  }
-
-  // finally, compute the z-score
-  return(top/sqrt(lower_left - lower_right));
-}
-
-
-double compute_mean_over_treated_units(List precomp, const std::vector<int>& trt_idxs, int n_trt) {
+double compute_sum_over_treated_units(List precomp, const std::vector<int>& trt_idxs, int n_trt) {
   NumericVector r = precomp(0);
   double sum = 0, n_trt_doub = static_cast<double>(n_trt);
   for (int j = 0; j < n_trt; j ++) sum += r[trt_idxs[j]];

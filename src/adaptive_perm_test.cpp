@@ -18,10 +18,8 @@ List run_adaptive_permutation_test_cpp(List precomp_list, IntegerVector x, int s
 
   // select the test statistic
   double (*funct)(List, const std::vector<int>&, int) = nullptr;
-  if (test_stat_str == "compute_score_stat") {
-    funct = compute_score_stat;
-  } else if (test_stat_str == "compute_mean_over_treated_units") {
-    funct = compute_mean_over_treated_units;
+  if (test_stat_str == "compute_sum_over_treated_units") {
+    funct = compute_sum_over_treated_units;
   } else if (test_stat_str == "compute_mw_test_statistic") {
     funct = compute_mw_test_statistic;
   } else {
