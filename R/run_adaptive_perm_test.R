@@ -1,6 +1,29 @@
-#' Run adaptive permutation test
+#' Run permutation test
 #'
-#' @return the results data frame
+#' `run_permutation_test()` runs a permutation test to test for association between a binary "treatment" vector \eqn{x \in \{0, 1\}^n} and a collection of response vectors \eqn{y_1, \dots, y_n \in R^n}.
+#'
+#'`Y_list` is a list of length \eqn{n} that contains the response vectors. Each vector should be of class `numeric`.
+#'
+#' `x` is a binary "treatment" vector containing only `0`s and `1`s. `x` should be of class `numeric` or `integer`.
+#'
+#' Users can select the test statistic to use via the `test_statistic` argument. Current options include `"MW"` (for the Mann-Whitney test statistic) and `"sum_over_treated_units"` (for the sum-over-treated-units test statistic). The sum-over-treated-units test statistic is defined as follows: \deqn{(1/\sqrt{s})\sum_{X_i = 1} Y_i,} where \deqn{s = \sum_{i=1}^n X_i} is the number of "treated" units within \eqn{X}.
+#'
+#' `side` is the sidedness of the test; users can select between `"left"`, `"right"`, or `"two_tailed"` for left-, right-, and two-tailed tests, respectively.
+#'
+#' `h` is the tuning parameter used within the adaptive permutation test. We stop computing permutations for a given hypothesis when the number of "losses" hits `h`, where, for a right-tailed test, a loss is defined as a null statistic exceeding the original statistic.
+#'
+#' `alpha` is the nominal false discovery rate (FDR) of the test. `adaptive` is a flag indicating whether to run an adaptive permutation test (`TRUE`) or a classical permutation test (`FALSE`). Finally, `B` is the number of permutations to compute for each hypothesis if `adaptive` is set to `FALSE`. The default value of `B` is \eqn{5m/\alpha}, where \eqn{m} is the number of hypotheses to test.
+#'
+#' @param Y_list (required) a list of response vectors
+#' @param x (required) a binary vector of "treatments"
+#' @param test_statistic (optional; default `"sum_over_treated_units"`) a string indicating the test statistic to use. Current options include `"sum_over_treated_units"` and `"MW"`
+#' @param side (optional; default `"two_tailed"`) the sidedness of the test, one of `"left"`, `"right"`, or `"two_tailed"`
+#' @param h (optional; default `15`) the tuning parameter for the adaptive permutation test
+#' @param alpha (optional; default `0.1`) the nominal false discovery rate
+#' @param adaptive (optional; default `TRUE`) a logical indicating whether to run an adaptive permutation test (`TRUE`) or a classical permutation test (`FALSE`)
+#' @param B (optional; default `5 * length(Y)/alpha`) if `adaptive` is set to `FALSE`, the number of permutations to compute for each hypothesis
+#'
+#' @return the results data frame containing columns `p_value` and `rejected`
 #' @export
 #'
 #' @examples
