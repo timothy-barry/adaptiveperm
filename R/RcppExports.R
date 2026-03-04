@@ -5,6 +5,10 @@ run_adaptive_permutation_test_cpp <- function(precomp_list, x, side_code, h, alp
     .Call(`_adaptiveperm_run_adaptive_permutation_test_cpp`, precomp_list, x, side_code, h, alpha, test_stat_str)
 }
 
+run_bc_permutation_test_cpp <- function(precomp_list, x, side_code, h, B, test_stat_str) {
+    .Call(`_adaptiveperm_run_bc_permutation_test_cpp`, precomp_list, x, side_code, h, B, test_stat_str)
+}
+
 run_permutation_test_cpp <- function(precomp_list, x, side_code, B, test_stat_str) {
     .Call(`_adaptiveperm_run_permutation_test_cpp`, precomp_list, x, side_code, B, test_stat_str)
 }

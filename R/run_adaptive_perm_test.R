@@ -2,7 +2,7 @@
 #'
 #' `run_permutation_test()` runs a permutation test to test for association between a binary "treatment" vector \eqn{x \in \{0, 1\}^n} and a collection of response vectors \eqn{y_1, \dots, y_n \in R^n}.
 #'
-#'`Y_list` is a list of length \eqn{n} that contains the response vectors. Each vector should be of class `numeric`.
+#'`Y_list` is a list of response vectors (one per hypothesis). Each vector should be of class `numeric`.
 #'
 #' `x` is a binary "treatment" vector containing only `0`s and `1`s. `x` should be of class `numeric` or `integer`.
 #'
@@ -12,16 +12,16 @@
 #'
 #' `h` is the tuning parameter used within the adaptive permutation test. We stop computing permutations for a given hypothesis when the number of "losses" hits `h`, where, for a right-tailed test, a loss is defined as a null statistic exceeding the original statistic.
 #'
-#' `alpha` is the nominal false discovery rate (FDR) of the test. `adaptive` is a flag indicating whether to run an adaptive permutation test (`TRUE`) or a classical permutation test (`FALSE`). Finally, `B` is the number of permutations to compute for each hypothesis if `adaptive` is set to `FALSE`. The default value of `B` is \eqn{5m/\alpha}, where \eqn{m} is the number of hypotheses to test.
+#' `alpha` is the nominal false discovery rate (FDR) of the test. `method` controls which permutation procedure to run. Select `"classical"` for a fixed-`B` permutation test, `"anytime"` for the currently implemented adaptive test with early rejection and futility, or `"besag_clifford"` for adaptive stopping by futility only. Finally, `B` is the maximum number of permutations used in the `"classical"` and `"besag_clifford"` methods. The default value of `B` is \eqn{5m/\alpha}, where \eqn{m} is the number of hypotheses to test.
 #'
 #' @param Y_list (required) a list of response vectors
 #' @param x (required) a binary vector of "treatments"
-#' @param test_statistic (optional; default `"sum_over_treated_units"`) a string indicating the test statistic to use. Current options include `"sum_over_treated_units"` and `"MW"`
+#' @param test_statistic (optional; default `"MW"`) a string indicating the test statistic to use. Current options include `"sum_over_treated_units"` and `"MW"`
 #' @param side (optional; default `"two_tailed"`) the sidedness of the test, one of `"left"`, `"right"`, or `"two_tailed"`
-#' @param h (optional; default `15`) the tuning parameter for the adaptive permutation test
+#' @param h (optional; default `10`) the tuning parameter for the adaptive permutation test
 #' @param alpha (optional; default `0.1`) the nominal false discovery rate
-#' @param adaptive (optional; default `TRUE`) a logical indicating whether to run an adaptive permutation test (`TRUE`) or a classical permutation test (`FALSE`)
-#' @param B (optional; default `5 * length(Y)/alpha`) if `adaptive` is set to `FALSE`, the number of permutations to compute for each hypothesis
+#' @param method (optional; default `"anytime"`) one of `"classical"`, `"anytime"`, or `"besag_clifford"`
+#' @param B (optional; default `5 * length(Y)/alpha`) if `method` is `"classical"` or `"besag_clifford"`, the maximum number of permutations to compute for each hypothesis
 #'
 #' @return the results data frame containing columns `p_value` and `rejected`
 #' @export
@@ -43,10 +43,13 @@
 #' # sum over treated units statistic
 #' res <- run_permutation_test(Y_list, x, test_statistic = "sum_over_treated_units")
 #' evaluate_simulation_results(res, under_null)
-run_permutation_test <- function(Y_list, x, side = "two_tailed", h = 15L, alpha = 0.1, test_statistic = "MW", adaptive = TRUE, B = NULL) {
+run_permutation_test <- function(Y_list, x, side = "two_tailed", h = 10L, alpha = 0.1, test_statistic = "MW", method = "anytime", B = NULL) {
   # run checks
   if (!(test_statistic %in% c("MW", "sum_over_treated_units"))) {
     stop("`test_statistic` not recognized. Select between `MW` and `sum_over_treated_units`.")
+  }
+  if (!(method %in% c("classical", "anytime", "besag_clifford"))) {
+    stop("`method` not recognized. Select between `classical`, `anytime`, and `besag_clifford`.")
   }
   # verify x is binary
   x <- as.integer(x)
@@ -61,17 +64,18 @@ run_permutation_test <- function(Y_list, x, side = "two_tailed", h = 15L, alpha 
   }
   side_code <- get_side_code(side)
   # set B (if not already set)
-  if (is.null(B)) B <- round(5 * length(Y_list)/alpha)
+  if (is.null(B)) B <- as.integer(round(5 * length(Y_list)/alpha))
+  B <- as.integer(B)
   # prepare to launch function
   funct_name <- switch(test_statistic,
                        "MW" = "run_permutation_test_mw",
                        "sum_over_treated_units" = "run_permutation_test_sum_over_treated_units")
-  out <- do.call(what = funct_name, args = list(Y_list, x, side_code, h, alpha, adaptive, B))
+  out <- do.call(what = funct_name, args = list(Y_list, x, side_code, h, alpha, method, B))
   return(out)
 }
 
 
-run_permutation_test_mw <- function(Y_list, x, side_code, h, alpha, adaptive, B) {
+run_permutation_test_mw <- function(Y_list, x, side_code, h, alpha, method, B) {
   # iterate over hypotheses, performing precomputation
   precomp_list <- lapply(X = Y_list, FUN = function(y) {
     r <- rank(y)
@@ -82,9 +86,12 @@ run_permutation_test_mw <- function(Y_list, x, side_code, h, alpha, adaptive, B)
     list(r = r, sigma = sigma, side_code = side_code)
   })
   # run the permutation test
-  if (adaptive) {
+  if (method == "anytime") {
     result <- run_adaptive_permutation_test_cpp(precomp_list, x, side_code, h, alpha, "compute_mw_test_statistic")
     p_values <- result$p_values; rejected <- result$rejected
+  } else if (method == "besag_clifford") {
+    p_values <- run_bc_permutation_test_cpp(precomp_list, x, side_code, h, B, "compute_mw_test_statistic")
+    rejected <- stats::p.adjust(p_values, method = "BH") < alpha
   } else {
     p_values <- run_permutation_test_cpp(precomp_list, x, side_code, B, "compute_mw_test_statistic")
     rejected <- stats::p.adjust(p_values, method = "BH") < alpha
@@ -94,11 +101,14 @@ run_permutation_test_mw <- function(Y_list, x, side_code, h, alpha, adaptive, B)
 }
 
 
-run_permutation_test_sum_over_treated_units <- function(Y_list, x, side_code, h, alpha, adaptive, B) {
+run_permutation_test_sum_over_treated_units <- function(Y_list, x, side_code, h, alpha, method, B) {
   precomp_list <- lapply(Y_list, FUN = function(y) list(y = y))
-  if (adaptive) {
+  if (method == "anytime") {
     result <- run_adaptive_permutation_test_cpp(precomp_list, x, side_code, h, alpha, "compute_sum_over_treated_units")
     p_values <- result$p_values; rejected <- result$rejected
+  } else if (method == "besag_clifford") {
+    p_values <- run_bc_permutation_test_cpp(precomp_list, x, side_code, h, B, "compute_sum_over_treated_units")
+    rejected <- stats::p.adjust(p_values, method = "BH") < alpha
   } else {
     p_values <- run_permutation_test_cpp(precomp_list, x, side_code, B, "compute_sum_over_treated_units")
     rejected <- stats::p.adjust(p_values, method = "BH") < alpha

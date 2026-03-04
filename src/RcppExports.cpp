@@ -26,6 +26,22 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// run_bc_permutation_test_cpp
+std::vector<double> run_bc_permutation_test_cpp(List precomp_list, IntegerVector x, int side_code, int h, int B, std::string test_stat_str);
+RcppExport SEXP _adaptiveperm_run_bc_permutation_test_cpp(SEXP precomp_listSEXP, SEXP xSEXP, SEXP side_codeSEXP, SEXP hSEXP, SEXP BSEXP, SEXP test_stat_strSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type precomp_list(precomp_listSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< int >::type side_code(side_codeSEXP);
+    Rcpp::traits::input_parameter< int >::type h(hSEXP);
+    Rcpp::traits::input_parameter< int >::type B(BSEXP);
+    Rcpp::traits::input_parameter< std::string >::type test_stat_str(test_stat_strSEXP);
+    rcpp_result_gen = Rcpp::wrap(run_bc_permutation_test_cpp(precomp_list, x, side_code, h, B, test_stat_str));
+    return rcpp_result_gen;
+END_RCPP
+}
 // run_permutation_test_cpp
 std::vector<double> run_permutation_test_cpp(List precomp_list, IntegerVector x, int side_code, int B, std::string test_stat_str);
 RcppExport SEXP _adaptiveperm_run_permutation_test_cpp(SEXP precomp_listSEXP, SEXP xSEXP, SEXP side_codeSEXP, SEXP BSEXP, SEXP test_stat_strSEXP) {
@@ -57,6 +73,7 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_adaptiveperm_run_adaptive_permutation_test_cpp", (DL_FUNC) &_adaptiveperm_run_adaptive_permutation_test_cpp, 6},
+    {"_adaptiveperm_run_bc_permutation_test_cpp", (DL_FUNC) &_adaptiveperm_run_bc_permutation_test_cpp, 6},
     {"_adaptiveperm_run_permutation_test_cpp", (DL_FUNC) &_adaptiveperm_run_permutation_test_cpp, 5},
     {"_adaptiveperm_generate_wor_sample_test", (DL_FUNC) &_adaptiveperm_generate_wor_sample_test, 3},
     {NULL, NULL, 0}
